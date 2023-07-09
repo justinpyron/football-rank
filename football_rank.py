@@ -41,8 +41,8 @@ class FootballRank:
         if start_year < 1872:
             raise ValueError('Earliest year available is 1872')
 
-        self.data = pd.read_csv('cfb_data_1872_2021.csv', index_col=0) # TEMPORARY FIX UNTIL YOU'RE NOT BLOCKED FROM WEBSITE
-        # self.data = self.load_data(start_year, end_year)
+        # self.data = pd.read_csv('cfb_data_1872_2021.csv', index_col=0) # TEMPORARY FIX UNTIL YOU'RE NOT BLOCKED FROM WEBSITE
+        self.data = self.load_data(start_year, end_year)
 
 
     def load_data(
@@ -304,5 +304,6 @@ class FootballRank:
         df = df.sort_values(by='week').reset_index(drop=True)
         df['winner'] = df['winner'].str.title()
         df['loser'] = df['loser'].str.title()
+        df['date'] = df['date'].dt.date
         df['season_year'] = df['season_year'].astype(str)
         return df

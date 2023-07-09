@@ -4,9 +4,8 @@ from football_rank import FootballRank
 
 
 today = datetime.now()
-DATA_YEAR_END = 2021
 DATA_YEAR_BEGIN = 2005 # 1872 is first available year
-# DATA_YEAR_END = today.year if today.month >= 9 else today.year-1 # Reset when done testing
+DATA_YEAR_END = today.year if today.month >= 9 else today.year-1 # Reset when done testing
 
 
 st.set_page_config(
@@ -52,8 +51,6 @@ with st.container():
             index=0,
         )
         only_fbs = True if only_fbs == 'FBS only' else False
-        print(only_fbs)
-
 
 with st.container():
     col1, col2 = st.columns(spec=[4,11], gap='medium')
@@ -63,7 +60,7 @@ with st.container():
             year,
             week,
             only_fbs,
-            alpha=0.9,
+            alpha=0.95,
         )
         st.dataframe(
             rankings,
@@ -75,10 +72,8 @@ with st.container():
         stats = ranker.statistics(year, week, only_fbs)
         st.dataframe(stats, use_container_width=True)
 
-
 with st.container():
     st.markdown('#### Schedules')
-
     team = st.selectbox(
         label='Team',
         options=rankings['Team'].sort_values(),
