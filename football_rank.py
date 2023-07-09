@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-import networkx as nx
 import matplotlib.pyplot as plt
 import re
 from typing import Callable
@@ -36,34 +35,27 @@ class FootballRank:
         self,
         start_year: int,
         end_year: int,
-        only_fbs: bool = True,
     ) -> None:
         if end_year < start_year:
             raise ValueError('end_year must be greater than or equal to start_year')
         if start_year < 1872:
             raise ValueError('Earliest year available is 1872')
-        self.data = self.load_data(start_year, end_year)
-        if only_fbs:
-            in_fbs_mask = self.data.apply(
-                lambda x: x['winner'] in FBS and x['loser'] in FBS,
-                axis=1,
-            )
-            self.data = self.data[in_fbs_mask]
+
+        self.data = pd.read_csv('cfb_data_1872_2021.csv', index_col=0) # TEMPORARY FIX UNTIL YOU'RE NOT BLOCKED FROM WEBSITE
+        # self.data = self.load_data(start_year, end_year)
 
 
-    def scrape_data(
+    def load_data(
         self,
-        year: int,
-    ) -> list[str]:
-        '''Scrape and process html from sports-reference.com'''
-        url = f'https://www.sports-reference.com/cfb/years/{year}-schedule.html'
-        soup = BeautifulSoup(requests.get(url).content, 'html.parser')
-        rows = list()
-        for tr in soup.find_all('tr'):
-            new_row = [td.get_text() for td in tr.find_all('td')]
-            if len(new_row) > 0:
-                rows.append(new_row)
-        return rows
+        start_year: int,
+        end_year: int,
+    ) -> pd.DataFrame:
+        '''Loads DataFrame used for all calcualtions'''
+        data = pd.concat([
+            self.load_data_single_year(year) \
+            for year in range(start_year, end_year+1)
+        ], axis=0)
+        return data.reset_index(drop=True)
 
 
     def load_data_single_year(
@@ -102,16 +94,26 @@ class FootballRank:
         return df
 
 
-    def load_data(
+    def scrape_data(
         self,
-        start_year: int,
-        end_year: int,
-    ) -> pd.DataFrame:
-        data = pd.concat([
-            self.load_data_single_year(year) \
-            for year in range(start_year, end_year+1)
-        ], axis=0)
-        return data.reset_index(drop=True)
+        year: int,
+    ) -> list[str]:
+        '''
+        Scrape and process html from sports-reference.com
+        
+        Take note of this quote from sports-reference.com's bot policy:
+        "Currently we will block users sending requests to
+        our sites more often than twenty requests in a minute"
+        https://www.sports-reference.com/bot-traffic.html
+        '''
+        url = f'https://www.sports-reference.com/cfb/years/{year}-schedule.html'
+        soup = BeautifulSoup(requests.get(url).content, 'html.parser')
+        rows = list()
+        for tr in soup.find_all('tr'):
+            new_row = [td.get_text() for td in tr.find_all('td')]
+            if len(new_row) > 0:
+                rows.append(new_row)
+        return rows
 
 
     def build_matrix(
@@ -143,7 +145,8 @@ class FootballRank:
             margin = points_winner - points_loser if points_winner > points_loser else TIEBREAKER_POINTS
             # Break ties by declaring away team the winner by TIEBREAKER_POINTS
             # For ties, raw data source labels the away team the winner
-            matrix[winner_idx, loser_idx] += margin_scaling_func(margin)  # Don't reassign; add to, in case teams play twice
+            matrix[winner_idx, loser_idx] += margin_scaling_func(margin)
+            # Don't reassign matrix[i,j]; add to, in case teams play twice
 
         # Normalize (outgoing PageRank normalized by total outgoing PageRank)
         column_sums = matrix.sum(axis=0)
@@ -174,52 +177,42 @@ class FootballRank:
         return page_rank_vector
 
 
-    # def football_rank(
-    #     self,
-    #     data: pd.DataFrame,
-    #     alpha=0.8,
-    #     margin_scaling_func=lambda x: x
-    # ) -> pd.DataFrame:
-    #     '''Computes FootballRank rankings'''
-    #     matrix, teams = self.build_matrix(data, margin_scaling_func)
-    #     rank_vector = self.page_rank(matrix, alpha)
-    #     rankings = pd.DataFrame({'team': teams, 'FootballRank': rank_vector})
-    #     rankings = rankings.sort_values(by='FootballRank', ascending=False)
-    #     rankings = rankings.reset_index(drop=True)
-    #     rankings['rank'] = (rankings.index + 1).tolist()
-    #     return rankings[['rank', 'team', 'FootballRank']]
-
-
     def football_rank(
         self,
         year: int,
         week: int,
-        alpha: float = 0.8,
+        only_fbs: bool = True,
+        alpha: float = 0.95,
         margin_scaling_func: Callable[[float], float] = lambda x: x,
         use_last_12months: bool = False,
     ) -> pd.DataFrame:
         '''Computes FootballRank rankings'''
 
         # Prepare input data
-        this_year = self.data[
-            (self.data['season_year'] == year) &\
-            (self.data['week'] <= week)
+        this_season = self.data[
+            (self.data['season_year'] == year) & (self.data['week'] <= week)
         ]
-        last_year = self.data[
-            (self.data['season_year'] == year-1) &\
-            (self.data['week'] > week)
+        last_season = self.data[
+            (self.data['season_year'] == year-1) & (self.data['week'] > week)
         ]
-        data = pd.concat([this_year, last_year]) if use_last_12months else this_year
+        data = pd.concat([this_season, last_season]) if use_last_12months else this_season
+        data = data[self.is_in_fbs_mask(data)] if only_fbs else data
 
         # Compute rankings
         matrix, teams = self.build_matrix(data, margin_scaling_func)
         rank_vector = self.page_rank(matrix, alpha)
+        rank_vector = (rank_vector - rank_vector.min()) / \
+            (rank_vector.max() - rank_vector.min()) # Normalize to [0,100]
 
         # Package inside DataFrame
-        rankings = pd.DataFrame({'Team': teams, 'FootballRank Score': rank_vector})
+        rankings = pd.DataFrame({
+            'Team': teams,
+            'FootballRank Score': (100*rank_vector).round(2)
+        })
         rankings = rankings.sort_values(by='FootballRank Score', ascending=False)
         rankings = rankings.reset_index(drop=True)
         rankings['Rank'] = (rankings.index + 1).tolist()
+        rankings['Team'] = rankings['Team'].str.title()
         return rankings[['Rank', 'Team', 'FootballRank Score']]
 
 
@@ -227,20 +220,28 @@ class FootballRank:
         self,
         year: int,
         week: int,
+        only_fbs: bool = True,
     ) -> pd.DataFrame:
         '''
         Compute win-loss statistics for each team through specified week of 
         specified season. For example, statistics(2018,7) computes statistics 
         in 2018 through week 7.
         '''
+
+        # Fetch data
         this_season = self.data[
             (self.data['season_year'] == year) & (self.data['week'] <= week)
         ]
         last_season = self.data[
             (self.data['season_year'] == year-1) & (self.data['week'] > week)
         ]
-        both_seasons = pd.concat([this_season, last_season], axis=0)
-        
+        this_season = this_season[self.is_in_fbs_mask(this_season)] if only_fbs else this_season
+        last_season = last_season[self.is_in_fbs_mask(last_season)] if only_fbs else last_season
+        both_seasons = pd.concat([this_season, last_season])
+
+        # Compute required columns
+
+
         teams = np.sort(pd.concat([
             this_season['winner'],
             this_season['loser'],
@@ -250,6 +251,7 @@ class FootballRank:
         last_12months_wins = [(both_seasons['winner'] == x).sum() for x in teams]
         last_12months_losses = [(both_seasons['loser'] == x).sum() for x in teams]
         
+        # Make DataFrame
         stats = pd.DataFrame({
             'team': teams,
             'wins': wins,
@@ -261,6 +263,7 @@ class FootballRank:
         stats['win_pct'] = stats['wins'] / stats['games_played']
         stats['last_12months_games'] = stats['last_12months_wins'] + stats['last_12months_losses']
         stats['last_12months_win_pct'] = stats['last_12months_wins'] / stats['last_12months_games']
+        stats['team'] = stats['team'].str.title()
 
         return stats[[
             'team',
@@ -273,17 +276,33 @@ class FootballRank:
             'last_12months_games',
             'last_12months_win_pct',
         ]].sort_values(by='win_pct', ascending=False).reset_index(drop=True)
-    
+
+
+    def is_in_fbs_mask(
+        self,
+        df: pd.DataFrame,
+    ) -> pd.Series:
+        '''Returns boolean mask indicating if row contains only FBS teams'''
+        return self.data.apply(
+            lambda x: x['winner'] in FBS and x['loser'] in FBS,
+            axis=1,
+        )
+
 
     def schedule(
         self,
         team: str,
         year: int,
-        week: int,
+        only_fbs: bool = True,
     ) -> pd.DataFrame:
         '''Returns a team's schedule through specified week of specified year'''
-        return self.data[
+        df = self.data[
             (self.data['season_year'] == year) &\
-            (self.data['week'] <= week) &\
             ((self.data['winner'] == team) | (self.data['loser'] == team))
-        ].sort_values(by='week').reset_index(drop=True)
+        ].copy()
+        df = df[self.is_in_fbs_mask(df)] if only_fbs else df
+        df = df.sort_values(by='week').reset_index(drop=True)
+        df['winner'] = df['winner'].str.title()
+        df['loser'] = df['loser'].str.title()
+        df['season_year'] = df['season_year'].astype(str)
+        return df
