@@ -1,11 +1,5 @@
 import streamlit as st
-from datetime import datetime
 from football_rank import FootballRank
-
-
-today = datetime.now()
-DATA_YEAR_BEGIN = 2005 # 1872 is first available year
-DATA_YEAR_END = today.year if today.month >= 9 else today.year-1 # Reset when done testing
 
 
 st.set_page_config(
@@ -14,25 +8,22 @@ st.set_page_config(
     layout='wide',
 )
 st.title('FootballRank 🏈')
-
+st.write('👉 Learn how it works on [GitHub](https://github.com/justinpyron/football-rank/blob/main/README.md)')
 
 @st.cache_data
-def initialize_ranker(
-    data_year_begin:int,
-    data_year_end: int,
-):
-    return FootballRank(data_year_begin, data_year_end)
+def initialize_ranker():
+    return FootballRank()
 
-ranker = initialize_ranker(DATA_YEAR_BEGIN, DATA_YEAR_END)
+ranker = initialize_ranker()
 
 with st.container():
-    col1, col2, col3 = st.columns(3, gap='large')
+    col1, col2, col3 = st.columns(spec=[4,3,2], gap='large')
     with col1:
         year = st.slider(
             label='Year',
-            value=DATA_YEAR_END,
-            min_value=DATA_YEAR_BEGIN,
-            max_value=DATA_YEAR_END,
+            value=1970,
+            min_value=1970, # 1872 is first available year
+            max_value=2022,
         )
     with col2:
         week = st.slider(
@@ -43,7 +34,7 @@ with st.container():
         )
     with col3:
         only_fbs = st.radio(
-            label='Games to consider when computing ranking',
+            label='Opponents to consider',
             options=[
                 'FBS only',
                 'FBS & FCS',
@@ -68,7 +59,7 @@ with st.container():
             use_container_width=True
         )
     with col2:
-        st.markdown('#### Win-Loss Statistics')
+        st.markdown('#### Standings')
         stats = ranker.statistics(year, week, only_fbs)
         st.dataframe(stats, use_container_width=True)
 
@@ -81,4 +72,3 @@ with st.container():
     )
     schedule_data = ranker.schedule(team.lower(), year, only_fbs)
     st.dataframe(schedule_data, use_container_width=True)
-
