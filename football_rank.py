@@ -33,7 +33,7 @@ class FootballRank:
 
     def __init__(self) -> None:
         self.data = pd.read_csv(
-            'data_1872_2022.csv',
+            'data_1872_2024.csv',
             parse_dates=['date']
         )
 

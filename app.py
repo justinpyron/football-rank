@@ -23,7 +23,7 @@ with st.container():
             label='Year',
             value=1970,
             min_value=1970, # 1872 is first available year
-            max_value=2022,
+            max_value=int(ranker.data["season_year"].max()),
         )
     with col2:
         week = st.slider(
