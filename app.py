@@ -1,6 +1,18 @@
 import streamlit as st
 from football_rank import FootballRank
 
+what_is_this_app = """
+FootballRank is a method for ranking college football teams.
+
+Not all college football conferences are equal.
+So rather than rank teams solely on win-loss record, I developed FootballRank.
+It is inspired by Google’s PageRank algorithm, but is adapted to rank Football teams instead of webpages.
+See more details [here](https://github.com/justinpyron/football-rank).
+
+I get score data from [sports-reference.com](https://www.sports-reference.com/cfb/years/2024-schedule.html).
+
+Source code 👉 [GitHub](https://github.com/justinpyron/football-rank).
+"""
 
 st.set_page_config(
     page_title='FootballRank',
@@ -8,7 +20,8 @@ st.set_page_config(
     layout='wide',
 )
 st.title('FootballRank 🏈')
-st.write('👉 Learn how it works on [GitHub](https://github.com/justinpyron/football-rank/blob/main/README.md)')
+with st.expander("What is this app?"):
+    st.markdown(what_is_this_app)
 
 @st.cache_data
 def initialize_ranker():
