@@ -19,18 +19,20 @@ ranker = initialize_ranker()
 with st.container():
     col1, col2, col3 = st.columns(spec=[4,3,2], gap='large')
     with col1:
+        most_recent_year = int(ranker.data["season_year"].max())
         year = st.slider(
             label='Year',
-            value=1970,
+            value=most_recent_year,
             min_value=1970, # 1872 is first available year
-            max_value=int(ranker.data["season_year"].max()),
+            max_value=most_recent_year,
         )
     with col2:
+        number_of_weeks = int(ranker.data[ranker.data["season_year"] == year]["week"].max())
         week = st.slider(
             label='Week',
-            value=16,
-            min_value=1,
-            max_value=16,
+            value=1,
+            min_value=number_of_weeks,
+            max_value=number_of_weeks,
         )
     with col3:
         only_fbs = st.radio(
