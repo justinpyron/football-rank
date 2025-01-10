@@ -48,10 +48,12 @@ poetry run streamlit run app.py
 
 # Appendix: Underlying Math
 The main idea of the _PageRank_ algorithm is that webpages which receive links from important webpages are important. 
-Mathematically (in a simplified version), the PageRank $x_i \in \mathbb{R}_+$ of webpage $i$ is
+Mathematically (in a simplified version), the PageRank $x_i \in \mathbb{R_{+}}$ of webpage $i$ is
+
 $$
 x_i = \sum_{j \in B_i} \frac{x_j}{N_j}
 $$
+
 where 
 * $B_i = \text{the set of webpages that link to webpage } i$
 * $N_j = \text{number of webpages to which webpage } j \text{ links}$
@@ -69,6 +71,6 @@ where
 * $g_i = \text{the number of games played by team } i$
 * $B_i = \text{the set of all teams defeated by team } i$
 * $m_{ji} = \text{the margin of victory of team } i \text{ over team } j$
-* $\theta_j = \sum_{\ell \in \{ k: \ell \in B_k \}} m_{j\ell}$ = sum of margin of defeat for team $j$ across all its games
+* $\theta_j = \sum_{\ell: j \in B_{\ell}} m_{j\ell}$ = sum of margin of defeat for team $j$ across all its losses
 
-In words, the _FootballRank_ of a team is the sum of the _FootballRank_ of all teams that it defeated, normalized by how abnormal the margin of defeat was for the losing team.
+In words, the _FootballRank_ of a team is the sum of the _FootballRank_ of all teams that it defeated, normalized by how abnormal the margin of defeat was for the losing team and by the number of games played.
