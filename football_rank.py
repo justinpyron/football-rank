@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 # Algorithm parameters
+DATASET = "data_1970_2025.csv"
 TIEBREAKER_POINTS = 0.5
 
 # Conferences
@@ -160,7 +161,7 @@ FBS = POWER_5 + GROUP_OF_5
 
 class FootballRank:
     def __init__(self) -> None:
-        self.data = pd.read_csv("data_1872_2024.csv", parse_dates=["date"])
+        self.data = pd.read_csv(DATASET, parse_dates=["date"])
 
     @staticmethod
     def is_in_fbs_mask(
