@@ -6,7 +6,7 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
-REQUEST_WAIT_TIME_SECONDS = 4
+REQUEST_WAIT_TIME_SECONDS = 5
 
 
 def scrape_data(year: int) -> list[str]:
@@ -102,10 +102,25 @@ def load_data(
         raise ValueError("year_end must be greater than or equal to year_start")
     if year_start < 1872:
         raise ValueError("Earliest year available is 1872")
-    data = pd.concat(
-        [load_data_single_year(year) for year in range(year_start, year_end + 1)],
-        axis=0,
-    )
+
+    dataframes = []
+    years = range(year_start, year_end + 1)
+    total_years = len(years)
+
+    for i, year in enumerate(years, start=1):
+        try:
+            print(f"[{i}/{total_years}] Loading {year}...", end=" ")
+            df = load_data_single_year(year)
+            dataframes.append(df)
+            print(f"✓ ({len(df)} games)")
+        except Exception as e:
+            print(f"❌ Failed: {e}")
+
+    if not dataframes:
+        raise ValueError("No data was successfully loaded")
+
+    print(f"\nSuccessfully loaded {len(dataframes)}/{total_years} years")
+    data = pd.concat(dataframes, axis=0)
     return data.reset_index(drop=True)
 
 
