@@ -1,0 +1,56 @@
+# Archive and old files
+archive/
+
+# Notebooks
+*.ipynb
+cfb_pagerank_sandbox.ipynb
+
+# Test data
+z_test_data.csv
+z_test_data_2.csv
+
+# Old data files (keeping only data_1970_2025.csv)
+data_1872_2022.csv
+data_1872_2024.csv
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Poetry files
+poetry.lock
+pyproject.toml
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# CI/CD
+.github/
+.pre-commit-config.yaml
+
+# Documentation
+README.md
+
+# Scripts not needed in container
+load_data.py
+
+# Cursor
+.cursor/
