@@ -1,7 +1,7 @@
+import argparse
 import re
 import time
 
-import click
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
@@ -109,13 +109,46 @@ def load_data(
     return data.reset_index(drop=True)
 
 
-@click.command()
-@click.argument("year_start")
-@click.argument("year_end")
-@click.argument("filename")
-def main(year_start, year_end, filename):
-    df = load_data(int(year_start), int(year_end))
-    df.to_csv(filename, index=False)
+def parse_args() -> argparse.Namespace:
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Scrape college football game data from sports-reference.com",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python load_data.py 2020 2024 data.csv
+  python load_data.py 1872 2024 all_data.csv
+        """,
+    )
+    parser.add_argument(
+        "year_start",
+        type=int,
+        help="Starting year (inclusive, earliest available: 1872)",
+    )
+    parser.add_argument(
+        "year_end",
+        type=int,
+        help="Ending year (inclusive)",
+    )
+    parser.add_argument(
+        "filename",
+        type=str,
+        help="Output CSV filename",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    """Main entry point for the script."""
+    args = parse_args()
+
+    print(f"Loading data from {args.year_start} to {args.year_end}...")
+    df = load_data(args.year_start, args.year_end)
+
+    print(f"Saving {len(df)} records to {args.filename}...")
+    df.to_csv(args.filename, index=False)
+
+    print("Done!")
 
 
 if __name__ == "__main__":
