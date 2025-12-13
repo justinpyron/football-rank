@@ -2,6 +2,8 @@ name: Build and Deploy
 
 on:
   workflow_dispatch:
+  # TESTING ONLY: Remove the push trigger below after initial testing is complete
+  push:  # Triggers on push to any branch - remove this after testing!
 
 env:
   GAR_LOCATION: ${{ vars.GAR_LOCATION }}
